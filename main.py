@@ -61,14 +61,18 @@ class SerialAudioSpec(object):
         time.sleep(1.25)
 
     def send_serial_block(self, initial: str = "AD", block: list = []):
+        # TODO : get rid of hardcoded shiz n put them in constructor
         if len(initial) > 2:
             return
 
-        if len(block) < 32:
+        if len(block) < 10:
             self.__device__.write(
                 x := "".join(
                     ["@", (initial + "R").rjust(3, "_")]
-                    + ["#" + str(i) for i in block]
+                    + [
+                        "#" + y if len(y := str(round(i, 3))) < 6 else "#" + str(-1)
+                        for i in block
+                    ]
                     + ["#&"]
                 ).encode("utf-8")
             )
@@ -76,7 +80,7 @@ class SerialAudioSpec(object):
             time.sleep(500 / 1000)
         else:
             els = len(block)
-            ops = int(els / 32) if els % 32 == 0 else int(els / 32) + (els % 32)
+            ops = els // 10 if els % 10 == 0 else els // 10 + 1
 
             for i in range(ops):
                 self.__device__.write(
@@ -92,19 +96,21 @@ class SerialAudioSpec(object):
                             ).rjust(3, "_"),
                         ]
                         + [
-                            "#" + str(i)
-                            for i in (block[:32] if len(block) >= 32 else block)
+                            "#" + y
+                            if len(y := str(round(i, 3))) < 21
+                            else "#" + str(-1)
+                            for i in (block[:10] if len(block) >= 10 else block)
                         ]
                         + ["#&"]
                     ).encode("utf-8")
                 )
-                block = block[32:] if len(block) > 32 else block
-                print(x)
+                block = block[10:] if len(block) > 10 else block
+                print(x.decode("utf-8"))
                 # time.sleep(1000 / 1000)
 
 
 if __name__ == "__main__":
     dev = SerialAudioSpec("./assets/blindfold.mp3")
-    x = [5 for _ in range(100)]
-    # x[1] = 21.24
-    dev.send_serial_block("", x)
+    x = [i * 0.75 for i in range(300)]
+    x[200] = 6969
+    dev.send_serial_block("AD", x)

@@ -1,60 +1,68 @@
 #include <Arduino.h>
 
-float audio_data[9600] = {0};
+#define DEBUG
+// #define DATA_DBG
+#define INFO_DBG
+#define FLASH_DBG
+
+float audio_data[500] = {0};
 char initial_[3] = {0};
 
-//offset must be > 0
-//size of initial must be 3
-//size of _dest must be > size + offset
+int temp_offset = 0;
+int _offset = 0;
+
+//offset must be >= 0
+//size of initial must be == 3
+//size of _dest must be >= size + offset
 int receive_serial_block(float *_dest, char *initial, int size, int offset, bool _cont = 1);
+void print_and_test(const int flashled_index, const float flashled_value);
+void receive_serial_chunk();
 
 void setup()
 {
   Serial.begin(115200);
-  Serial.setTimeout(25);
+  Serial.setTimeout(15);
   pinMode(PC13, OUTPUT);
 }
 
 void loop()
 {
-  int n = 0;
-  receive_serial_block(audio_data, initial_, 32, 0);
-  for (int i = 0; i < 192; i++)
-  {
-    Serial.print(audio_data[i]);
-    if (i < 191)
-    {
-      Serial.print(", ");
-    }
-    if (audio_data[i] == 25.00f)
-    {
-      n++;
-    }
-  }
-  Serial.println('\n');
-  Serial.print("n: ");
-  Serial.println(n);
-  Serial.println();
+  receive_serial_chunk();
+  print_and_test(200, 6969);
+}
 
-  if (audio_data[1] == 21.24f)
+void receive_serial_chunk()
+{
+  temp_offset = receive_serial_block(audio_data, initial_, 10, _offset);
+
+  char mode = initial_[strlen(initial_) - 1];
+
+  if (mode != 'E')
   {
-    for (int i = 0; i < 30; i++)
-    {
-      digitalWrite(PC13, digitalRead(PC13) ^ 1);
-      delay(150);
-    }
-    digitalWrite(PC13, 0);
+    _offset += temp_offset;
+  }
+  else if (mode == 'R')
+  {
+    _offset = 0;
+    temp_offset = 0;
+  }
+  else
+  {
+    _offset = 0;
+    temp_offset = 0;
   }
 }
 
-int receive_serial_block(float *_dest, char *initial, int size, int offset, bool _cont)
+int receive_serial_block(float *_dest, char *initial, const int size, const int offset, bool _cont)
 {
-  while (Serial.available() < 6)
-  {
-  }
 
   char buffer[192] = {'\0'};
-  Serial.readBytesUntil('&', buffer, size + 8 + (size * 4));
+
+SerialAV:
+  if (Serial.available() >= 6)
+    Serial.readBytesUntil('&', buffer, (size + 6) + (size * 6));
+  else
+    goto SerialAV;
 
   if (buffer[0] != '@')
   {
@@ -94,6 +102,7 @@ int receive_serial_block(float *_dest, char *initial, int size, int offset, bool
   char *pch;
 
   pch = strtok(buffer, delim);
+
   _dest[0 + offset] = atof(pch);
 
   int i = 1;
@@ -104,20 +113,51 @@ int receive_serial_block(float *_dest, char *initial, int size, int offset, bool
     i++;
   }
 
-  int _offset = 0;
-  Serial.println(initial); //@__R#21.24#&
-  char mode = initial[strlen(initial) - 1];
-  Serial.println(mode);
-  if (mode == 'R')
-    _cont = 0;
+  return i - 1;
+}
 
-  if (_cont)
+void print_and_test(const int flashled_index, const float flashled_value)
+{
+#ifdef DEBUG
+#ifdef INFO_DBG
+  Serial.print("Initial String: ");
+  Serial.println(initial_);
+  Serial.print("Initial Mode: ");
+  Serial.println(initial_[strlen(initial_) - 1]);
+  Serial.print("Offset: ");
+  Serial.println(_offset);
+#endif // INFO_DBG
+#ifdef DATA_DBG
+  int audio_data_len = round(sizeof(audio_data) / sizeof(audio_data[0]));
+
+  Serial.print("\n{");
+  for (int i = 0; i < audio_data_len / 2; i++)
   {
-    while (mode != 'E')
-    {
-      _offset += receive_serial_block(_dest, initial, 32, _offset + i - 1, false);
-    }
+    Serial.print(audio_data[i]);
+    if (i < (audio_data_len / 2) - 1)
+      Serial.print(", ");
   }
+  Serial.println("}\n");
+#endif // DATA_DBG
+#ifdef FLASH_DBG
+  int flash_time = 3000;
 
-  return i + _offset;
+  unsigned long long c_millis = millis();
+  unsigned long long p_millis = 0;
+
+  if (audio_data[flashled_index] == flashled_value)
+  {
+    for (int i = 0; i < flash_time / 50; i++)
+    {
+      // if (c_millis - p_millis >= 50)
+      // {
+      //   p_millis = c_millis;
+      digitalWrite(PC13, digitalRead(PC13) ^ 1);
+      delay(50);
+      // }
+    }
+    digitalWrite(PC13, 0);
+  }
+#endif // FLASH_DBG
+#endif // DEBUG
 }
