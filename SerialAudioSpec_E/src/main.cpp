@@ -79,7 +79,6 @@ SerialAV:
     buffer[i] = buffer[i + 4];
   }
 
-  char temp = initial[2];
   for (int i = 0; i < 2; i++)
   {
     if (initial[i] == '_')
@@ -161,3 +160,34 @@ void print_and_test(const int flashled_index, const float flashled_value)
 #endif // FLASH_DBG
 #endif // DEBUG
 }
+// #include "Seriallib.h"
+// #include "Arduino.h"
+
+// float data[100];
+
+// Seriallib receiver = Seriallib();
+
+// initial_t x = receiver.get_initial();
+
+// char __[3] = {'\0'};
+
+// void setup()
+// {
+//   Serial.begin(115200);
+// }
+
+// void loop()
+// {
+//   receiver.receive_serial_block(data, x, 32, 0);
+
+//   for (int i = 0; i < 20; i++)
+//   {
+//     Serial.println(data[i]);
+//   }
+
+//   Serial.print("Initial mode: ");
+//   Serial.println(x.mode);
+
+//   Serial.print("Initial full: ");
+//   Serial.println(x.initial);
+// }
