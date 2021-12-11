@@ -1,9 +1,7 @@
-#include <Arduino.h>
+#include <flags.hpp>
 
-#define DEBUG
-// #define DATA_DBG
-#define INFO_DBG
-#define FLASH_DBG
+#ifndef OOP
+#include <Arduino.h>
 
 float audio_data[500] = {0};
 char initial_[3] = {0};
@@ -14,20 +12,21 @@ int _offset = 0;
 // offset must be >= 0
 // size of initial must be == 3
 // size of _dest must be >= size + offset
-int receive_serial_block(float *_dest, char *initial, int size, int offset,
-                         bool _cont = 1);
+int receive_serial_block(float *_dest, char *initial, const int size, const int offset);
 void print_and_test(const int flashled_index, const float flashled_value);
 void receive_serial_chunk();
 
 void setup() {
   Serial.begin(115200);
   Serial.setTimeout(15);
+
+  digitalWrite(PC13, LOW);
   pinMode(PC13, OUTPUT);
 }
 
 void loop() {
   receive_serial_chunk();
-  print_and_test(200, 6969);
+  print_and_test(1, 6969);
 }
 
 void receive_serial_chunk() {
@@ -35,19 +34,15 @@ void receive_serial_chunk() {
 
   char mode = initial_[strlen(initial_) - 1];
 
-  if (mode != 'E') {
+  if (mode == 'I' || mode == 'A') {
     _offset += temp_offset;
-  } else if (mode == 'R') {
-    _offset = 0;
-    temp_offset = 0;
   } else {
     _offset = 0;
     temp_offset = 0;
   }
 }
 
-int receive_serial_block(float *_dest, char *initial, const int size,
-                         const int offset, bool _cont) {
+int receive_serial_block(float *_dest, char *initial, const int size, const int offset) {
   char buffer[192] = {'\0'};
 
 SerialAV:
@@ -132,34 +127,5 @@ void print_and_test(const int flashled_index, const float flashled_value) {
 #endif  // FLASH_DBG
 #endif  // DEBUG
 }
-// #include "Seriallib.h"
-// #include "Arduino.h"
 
-// float data[100];
-
-// Seriallib receiver = Seriallib();
-
-// initial_t x = receiver.get_initial();
-
-// char __[3] = {'\0'};
-
-// void setup()
-// {
-//   Serial.begin(115200);
-// }
-
-// void loop()
-// {
-//   receiver.receive_serial_block(data, x, 32, 0);
-
-//   for (int i = 0; i < 20; i++)
-//   {
-//     Serial.println(data[i]);
-//   }
-
-//   Serial.print("Initial mode: ");
-//   Serial.println(x.mode);
-
-//   Serial.print("Initial full: ");
-//   Serial.println(x.initial);
-// }
+#endif // !OOP

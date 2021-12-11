@@ -110,7 +110,7 @@ class SerialAudioSpec(object):
 
 
 if __name__ == "__main__":
-    dev = SerialAudioSpec("./assets/blindfold.mp3")
+    dev = SerialAudioSpec("")
     x = [i * 0.75 for i in range(300)]
     x[200] = 6969
     dev.send_serial_block("AD", x)
